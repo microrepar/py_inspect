@@ -1,0 +1,4 @@
+pywinauto==0.6.6
+pypiwin32>=223 
+PyQt5
+PyInstaller>=3.4
