@@ -1,0 +1,8 @@
+pywinauto==0.6.6
+pypiwin32>=223 
+docutils 
+pygments 
+kivy_deps.sdl2>=0.1.22 
+kivy_deps.glew>=0.1.12
+Kivy>=1.11.0
+PyInstaller>=3.4

@@ -15,6 +15,7 @@ from kivy.uix.recycleview.datamodel import RecycleDataModel
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.properties import StringProperty
+from kivy.core.clipboard import Clipboard
 
 from pywinauto import backend
 
@@ -22,7 +23,6 @@ Config.set('graphics', 'resizable', '1')
 Config.set('graphics', 'desktop', '1')
 Config.set('graphics', 'width', '1280')
 Config.set('graphics', 'height', '960')
-
 
 Builder.load_string('''
 <SelectableLabel>:
@@ -61,6 +61,13 @@ Builder.load_string('''
                     size_hint_y: None
         BoxLayout:
             id: right_boxlayout
+            orientation: 'vertical'
+            Button:
+                id: clipboard
+                size: 150, 44
+                size_hint: None, None
+                text: 'Copy to clipboard'
+                on_press: root.on_clipboard()
             RecycleView:
                 id: recycle_view
                 do_scroll_x: True
@@ -93,8 +100,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
     def refresh_view_attrs(self, rv, index, data):
         ''' Catch and handle the view changes '''
         self.index = index
-        return super(SelectableLabel, self).refresh_view_attrs(
-            rv, index, data)
+        return super(SelectableLabel, self).refresh_view_attrs(rv, index, data)
 
     def on_touch_down(self, touch):
         ''' Add selection on touch down '''
@@ -107,15 +113,16 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
         ''' Respond to the selection of items in the view. '''
         self.selected = is_selected
         if is_selected:
-            print("selection changed to {0}".format(rv.data[index]))
+            print(end='')  # print("selection applied for {0}".format(rv.data[index]))
         else:
-            print("selection removed for {0}".format(rv.data[index]))
+            print(end='')  # print("selection removed for {0}".format(rv.data[index]))
 
 
 class MyWindow(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        self.text = str()
         self.load_backends()
         self.backend = 'uia'
         self.__initialize_calc()
@@ -123,28 +130,31 @@ class MyWindow(BoxLayout):
 
     def select_node(self, node):
         data = node.text
-        print(data)
         self.show_properties(self.tree_model.props_dict.get(data))
 
     def load_backends(self):
         for _backend in backend.registry.backends.keys():
             self.ids.spinner.values.append(_backend)
 
+    def on_clipboard(self):
+        Clipboard.copy(self.text)
+
     def show_properties(self, data):
-        # for correct work ScrollView
-        #self.ids.recycle_view.bind(minimum_height=self.ids.recycle_view.setter('height'))
         col_titles = ['Property', 'Value']
         rows_len = len(data)
         columns = len(col_titles)
         table_data = []
+        self.text = str()
         for t in col_titles:
             table_data.append({'text': str(t)})
+            self.text += str(t) + '\t'
         for t in range(rows_len):
-            #print()
+            # print()
+            self.text += '\n'
             for r in range(columns):
-                #print(str(data[t][r]), end=' ')
-                table_data.append(
-                    {'text': str(data[t][r])})
+                # print(str(data[t][r]), end=' ')
+                table_data.append({'text': str(data[t][r])})
+                self.text += str(data[t][r]) + '\t'
         self.ids.recycle_grid.cols = columns
         self.ids.recycle_view.data = table_data
 
@@ -210,38 +220,6 @@ class MyTreeModel():
         props.extend(props_win32)
         node_dict = {self.__node_name(element_info): props}
         self.props_dict.update(node_dict)
-
-
-class DataTable(RecycleView):
-    def __init__(self, **kwargs):
-        super(DataTable, self).__init__(**kwargs)
-        element = backend.registry.backends['uia'].element_info_class()
-        props = [
-            ['control_id', str(element.control_id)],
-            ['class_name', str(element.class_name)],
-            ['enabled', str(element.enabled)],
-            ['handle', str(element.handle)],
-            ['name', str(element.name)],
-            ['process_id', str(element.process_id)],
-            ['rectangle', str(element.rectangle)],
-            ['rich_text', str(element.rich_text)],
-            ['visible', str(element.visible)]
-        ]
-        node_dict = {'%s "%s" (%s)' % (str(element.control_type), str(element.name), id(element)): props}
-        data = node_dict.get('%s "%s" (%s)' % (str(element.control_type), str(element.name), id(element)))
-        col_titles = ['Property', 'Value']
-        rows_len = len(data)
-        columns = len(col_titles)
-        table_data = []
-        for t in col_titles:
-            table_data.append({'text': str(t), 'size_hint_y': None, 'height': 50, 'bcolor': (.06, .45, .45, 1)})
-        for t in range(rows_len):
-            #print()
-            for r in range(columns):
-                #print(str(data[t][r]), end=' ')
-                table_data.append(
-                    {'text': str(data[t][r]), 'size_hint_y': None, 'height': 30, 'bcolor': (.06, .25, .25, 1)})
-        self.data = table_data
 
 
 class Application(App):
