@@ -11,6 +11,8 @@ Simple Inspect.exe analogue for Windows using Python 3.5, pywinauto and PyQt.
 - [Python 3.7](https://www.python.org/downloads/release/python-373/)
 - Install requirements from file  
   ```pip install -r requirements.txt```
+- To create executable
+  ```pyinstaller --onefile --windowed <script.py>```
   
 #### Run
 ```python3 py_inspect.py```
