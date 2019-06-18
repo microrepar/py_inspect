@@ -15,20 +15,30 @@ Config.set('graphics', 'resizable', '1')
 Config.set('graphics', 'desktop', '1')
 Config.set('graphics', 'width', '1280')
 Config.set('graphics', 'height', '960')
+Config.set('input', 'mouse', 'mouse,disable_multitouch')
 
 Builder.load_string('''
 <SelectableLabel>:
     text_size: self.width, None
+    color: 0,0,0,1
     canvas.before:
         Color:
-            rgba: (.0, 0.9, .1, .3) if self.selected else (0, 0, 0, 1)
+            rgba: (0.3, 0.3, 0.3, 0.3) if self.selected else (1, 1, 1, 1)
         Rectangle:
             pos: self.pos
             size: self.size
 <TreeViewLabel>:
+    color: 0,0,0,1
+    color_selected: (0.3, 0.3, 0.3, 0.3)
     on_touch_down:
         app.root.select_node(self)
 <MyWindow>
+    canvas.before:
+        Color:
+            rgba: (1, 1, 1, 1)
+        Rectangle:
+            pos: self.pos
+            size: self.size
     id: my_window
     BoxLayout:
         id: main_boxlayout
@@ -49,7 +59,7 @@ Builder.load_string('''
                     id: treeview
                     viewclass: 'TreeViewLabel'
                     hide_root: True
-                    indent_level: 4
+                    indent_level: 32
                     size_hint_y: None
         BoxLayout:
             id: right_boxlayout
@@ -74,8 +84,8 @@ Builder.load_string('''
                     size_hint_y: None
                     height: self.minimum_height
                     orientation: 'vertical'
-                    multiselect: False
-                    touch_multiselect: False
+                    multiselect: True
+                    touch_multiselect: True
 ''')
 
 
