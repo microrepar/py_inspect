@@ -19,7 +19,7 @@ Config.set('input', 'mouse', 'mouse,disable_multitouch')
 
 Builder.load_string('''
 <SelectableLabel>:
-    text_size: self.width, None
+    text_size: root.width, None
     color: 0,0,0,1
     canvas.before:
         Color:
@@ -28,6 +28,7 @@ Builder.load_string('''
             pos: self.pos
             size: self.size
 <TreeViewLabel>:
+    text_size: root.width, None
     color: 0,0,0,1
     color_selected: (0.3, 0.3, 0.3, 0.3)
     on_touch_down:
@@ -61,6 +62,8 @@ Builder.load_string('''
                     hide_root: True
                     indent_level: 32
                     size_hint_y: None
+                    size_hint_x: None
+                    width: self.parent.width*3
         BoxLayout:
             id: right_boxlayout
             orientation: 'vertical'
@@ -78,7 +81,6 @@ Builder.load_string('''
                 viewclass: 'SelectableLabel'
                 SelectableRecycleGridLayout:
                     id: recycle_grid
-                    default_size: None, None
                     cols: 2
                     default_size_hint: 1, None
                     size_hint_y: None
