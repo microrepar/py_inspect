@@ -1,5 +1,7 @@
 from kivy.app import App
+from kivy.core.window import Window
 from kivy.uix.behaviors import FocusBehavior
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.recyclegridlayout import RecycleGridLayout
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
@@ -8,6 +10,7 @@ from kivy.uix.treeview import *
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.core.clipboard import Clipboard
+from kivy.uix.bubble import Bubble
 
 from pywinauto import backend
 
@@ -18,7 +21,18 @@ Config.set('graphics', 'height', '960')
 Config.set('input', 'mouse', 'mouse,disable_multitouch')
 
 Builder.load_string('''
+<SelectCopy>:
+    size_hint: (None, None)
+    size: (160, 50)
+    pos_hint: {'center_x': .5, 'y': .6}
+    BubbleButton:
+        text: 'Select'
+        on_press: root.select_row()
+    BubbleButton:
+        text: 'Copy'
+        on_release: root.copy_row()
 <SelectableLabel>:
+    font_name: 'DejaVuSans.ttf'
     text_size: root.width, None
     color: 0,0,0,1
     canvas.before:
@@ -28,6 +42,7 @@ Builder.load_string('''
             pos: self.pos
             size: self.size
 <TreeViewLabel>:
+    font_name: 'DejaVuSans.ttf'
     text_size: root.width, None
     color: 0,0,0,1
     color_selected: (0.3, 0.3, 0.3, 0.3)
@@ -44,6 +59,7 @@ Builder.load_string('''
     BoxLayout:
         id: main_boxlayout
         BoxLayout:
+            padding: [5, 5, 5, 5]
             id: left_boxlayout
             orientation: 'vertical'
             Spinner:
@@ -65,6 +81,7 @@ Builder.load_string('''
                     size_hint_x: None
                     width: self.parent.width*3
         BoxLayout:
+            padding: [5, 5, 5, 5]
             id: right_boxlayout
             orientation: 'vertical'
             Button:
@@ -91,27 +108,67 @@ Builder.load_string('''
 ''')
 
 
+class SelectCopy(Bubble):
+    def __init__(self, row, text, touch, **kwargs):
+        super().__init__(**kwargs)
+        self.row = row
+        self.text = text
+        self.touch = touch
+
+    def select_row(self):
+        if self.row.index % 2 == 0:
+            self.row.parent.select_with_touch(self.row.index, self.touch)
+            self.row.parent.select_with_touch(self.row.index + 1, self.touch)
+        else:
+            self.row.parent.select_with_touch(self.row.index - 1, self.touch)
+            self.row.parent.select_with_touch(self.row.index, self.touch)
+        self.row.remove_widget(self)
+
+    def copy_row(self):
+        Clipboard.copy(self.text)
+        self.row.remove_widget(self)
+
+
 class SelectableRecycleGridLayout(FocusBehavior, LayoutSelectionBehavior, RecycleGridLayout):
     pass
 
 
-class SelectableLabel(RecycleDataViewBehavior, Label):
+class SelectableLabel(RecycleDataViewBehavior, Label, FloatLayout):
     ''' Add selection support to the Label '''
     index = None
+    rv = None
     selected = BooleanProperty(False)
     selectable = BooleanProperty(True)
 
     def refresh_view_attrs(self, rv, index, data):
         ''' Catch and handle the view changes '''
         self.index = index
+        self.rv = rv
         return super(SelectableLabel, self).refresh_view_attrs(rv, index, data)
 
     def on_touch_down(self, touch):
         ''' Add selection on touch down '''
         if super(SelectableLabel, self).on_touch_down(touch):
             return True
-        if self.collide_point(*touch.pos) and self.selectable:
-            return self.parent.select_with_touch(self.index, touch)
+        if self.collide_point(*touch.pos) and self.selectable and self.index != 0 and self.index != 1:
+            if touch.button == 'right':
+                if self.index % 2 == 0:
+                    text = str(self.rv.data[self.index]['text']) + '\t' + str(self.rv.data[self.index + 1]['text'])
+                else:
+                    text = str(self.rv.data[self.index - 1]['text']) + '\t' + str(self.rv.data[self.index]['text'])
+                self.bubb = SelectCopy(self, text, touch)
+                self.add_widget(self.bubb)
+                return False
+            if self.index % 2 == 0:
+                self.rv.data[self.index]['is_selected'] = 1 if self.rv.data[self.index]['is_selected'] == 0 else 0
+                self.rv.data[self.index + 1]['is_selected'] = 1 if self.rv.data[self.index + 1]['is_selected'] == 0 else 0
+                return self.parent.select_with_touch(self.index, touch) and \
+                       self.parent.select_with_touch(self.index + 1, touch)
+            else:
+                self.rv.data[self.index - 1]['is_selected'] = 1 if self.rv.data[self.index - 1]['is_selected'] == 0 else 0
+                self.rv.data[self.index]['is_selected'] = 1 if self.rv.data[self.index]['is_selected'] == 0 else 0
+                return self.parent.select_with_touch(self.index - 1, touch) and \
+                       self.parent.select_with_touch(self.index, touch)
 
     def apply_selection(self, rv, index, is_selected):
         ''' Respond to the selection of items in the view. '''
@@ -125,6 +182,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
 class MyWindow(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        Window.bind(on_key_down=self._on_keyboard_down)
 
         self.text = str()
         self.load_backends()
@@ -143,6 +201,23 @@ class MyWindow(BoxLayout):
     def on_clipboard(self):
         Clipboard.copy(self.text)
 
+    def _on_keyboard_down(self, instance, keyboard, keycode, text, modifiers):
+        if len(modifiers) > 0 and modifiers[0] == 'ctrl' and text == 'a':  # Ctrl+a
+            for cell in self.ids.recycle_view.data:
+                cell['is_selected'] = 1
+        if len(modifiers) > 0 and modifiers[0] == 'ctrl' and text == 'c':  # Ctrl+c
+            text = 'Property\tValue\n'
+            i = 0
+            for cell in self.ids.recycle_view.data:
+                if cell['is_selected'] == 1:
+                    text += cell['text']
+                    if i % 2 == 0:
+                        text += '\t'
+                    else:
+                        text += '\n'
+                i = i + 1
+            Clipboard.copy(text)
+
     def show_properties(self, data):
         col_titles = ['Property', 'Value']
         rows_len = len(data)
@@ -150,14 +225,14 @@ class MyWindow(BoxLayout):
         table_data = []
         self.text = str()
         for t in col_titles:
-            table_data.append({'text': str(t)})
+            table_data.append({'text': '[b]' + str(t) + '[/b]', 'markup': True, 'font_size': '20sp', 'is_selected': 0})
             self.text += str(t) + '\t'
         for t in range(rows_len):
             # print()
             self.text += '\n'
             for r in range(columns):
                 # print(str(data[t][r]), end=' ')
-                table_data.append({'text': str(data[t][r])})
+                table_data.append({'text': str(data[t][r]), 'is_selected': 0})
                 self.text += str(data[t][r]) + '\t'
         self.ids.recycle_grid.cols = columns
         self.ids.recycle_view.data = table_data
