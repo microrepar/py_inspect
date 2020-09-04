@@ -1,20 +1,21 @@
+import contextlib
 import sys
+import warnings
 from typing import Tuple
+from pyautogui import alert
 
 import pyperclip
 from PIL import Image
-from PySide2.QtCore import *
-from PySide2.QtGui import *
-from PySide2.QtWidgets import (QApplication, QComboBox, QLabel, QPushButton,
-                               QTableView, QTreeView, QVBoxLayout, QWidget)
+from PySide2.QtCore import (QAbstractTableModel, QCoreApplication, QLocale,
+                            QRect, Qt)
+from PySide2.QtGui import QStandardItem, QStandardItemModel
+from PySide2.QtWidgets import (QApplication, QComboBox, QTableView, QTreeView,
+                               QWidget)
 from pywinauto import Desktop, backend
 
-# from PyQt5.QtCore import *
-# from PyQt5.QtGui import *
-# from PyQt5.QtWidgets import *
-import warnings
 warnings.simplefilter("ignore", UserWarning)
 sys.coinit_flags = 2
+
 
 def main():
     app = QApplication(sys.argv)
@@ -73,15 +74,15 @@ class MyWindow(QWidget):
         
         element = self.tree_model.element_dict.get(data, None)
         if element is not None: 
-
             locate_element =  center_locate_element(element)
             pyperclip.copy('{0}, {1}'.format(*locate_element))
-
+            
             im: Image = element.capture_as_image()
             if im is not None and hasattr(im, 'show'):
-                im.show()
+                with contextlib.suppress(Exception):
+                    im.show()
             else:
-                print('O elemento selecionado não é uma imagem ou não contém o atributo show.')
+                alert(title='Atenção', text='O elemento selecionado não é uma imagem ou não contém o atributo show.')
             
             element.draw_outline(colour='green', thickness=4)
 
@@ -129,17 +130,17 @@ class MyTreeModel(QStandardItemModel):
                 ] 
 
         props_win32 = [
-                        ['CONTROLES'.center(15, '*'), ''.center(50, '*')]
-                      ] + [[e, ''] for e in dir(element) if not e.startswith('_') and not e.isupper()] if (self.backend == 'win32') else []
+                        [''.center(15, '*'), 'METHODS'.center(50, '*')]
+                      ] + [['', e] for e in dir(element) if not e.startswith('_') and not e[0].isupper()] if (self.backend == 'win32') else []
 
         props_uia = [
                         ['control_type', str(element_info.control_type)],
                         ['element', str(element_info.element)],
                         ['framework_id', str(element_info.framework_id)],
                         ['runtime_id', str(element_info.runtime_id)],
-                        ['CONTROLES'.center(15, '*'), ''.center(15, '*')]
+                        [''.center(15, '*'), 'METHODS'.center(50, '*')]
                         
-                    ] + [[e, ''] for e in dir(element) if not e.startswith('_') and not e.isupper()] if (self.backend == 'uia') else []
+                    ] + [['', e] for e in dir(element) if not e.startswith('_') and not e[0].isupper()] if (self.backend == 'uia') else []
 
         props.extend(props_uia)
         props.extend(props_win32)
@@ -188,3 +189,4 @@ def center_locate_element(element)-> Tuple:
 
 if __name__ == "__main__":
     main()
+    
