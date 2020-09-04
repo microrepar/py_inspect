@@ -74,6 +74,7 @@ class MyWindow(QWidget):
         
         element = self.tree_model.element_dict.get(data, None)
         if element is not None: 
+            element.set_focus()
             locate_element =  center_locate_element(element)
             pyperclip.copy('{0}, {1}'.format(*locate_element))
             
