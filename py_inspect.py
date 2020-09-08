@@ -2,10 +2,7 @@ import contextlib
 import sys
 import warnings
 from typing import Tuple
-from pyautogui import alert
 
-import pyperclip
-from PIL import Image
 from PySide2.QtCore import (QAbstractTableModel, QCoreApplication, QLocale,
                             QRect, Qt)
 from PySide2.QtGui import QStandardItem, QStandardItemModel
@@ -13,20 +10,17 @@ from PySide2.QtWidgets import (QApplication, QComboBox, QTableView, QTreeView,
                                QWidget)
 from pywinauto import Desktop, backend
 
+import pyperclip
+from PIL import Image
+from pyautogui import alert
+
 warnings.simplefilter("ignore", UserWarning)
 sys.coinit_flags = 2
 
 
-def main():
-    app = QApplication(sys.argv)
-    w = MyWindow()
-    w.show()
-    sys.exit(app.exec_())
-
-
 class MyWindow(QWidget):
     def __init__(self, *args):
-        QWidget.__init__(self, *args)
+        super().__init__()
 
         self.setFixedSize(930, 631)
         self.setLocale(QLocale(QLocale.English, QLocale.UnitedStates))
@@ -73,16 +67,20 @@ class MyWindow(QWidget):
         self.table_view.setColumnWidth(1, 320)
         
         element = self.tree_model.element_dict.get(data, None)
-        if element is not None: 
-            element.set_focus()
+        if element is not None:
+            with contextlib.suppress(Exception):
+               element.set_focus()
+
             locate_element =  center_locate_element(element)
-            pyperclip.copy('{0}, {1}'.format(*locate_element))
-            
-            im: Image = element.capture_as_image()
-            if im is not None and hasattr(im, 'show'):
-                with contextlib.suppress(Exception):
-                    im.show()
+            if locate_element is not None:
+                pyperclip.copy('{0}, {1}'.format(*locate_element))
             else:
+                pyperclip.copy('Retângulo não identificado.')
+            
+            try:
+                im: Image = element.capture_as_image()
+                im.show()
+            except:
                 alert(title='Atenção', text='O elemento selecionado não é uma imagem ou não contém o atributo show.')
             
             element.draw_outline(colour='green', thickness=4)
@@ -90,7 +88,7 @@ class MyWindow(QWidget):
 
 class MyTreeModel(QStandardItemModel):
     def __init__(self, element_info, _backend):
-        QStandardItemModel.__init__(self)
+        super().__init__()
         root_node = self.invisibleRootItem()
         self.props_dict = {}
         self.element_dict = {}
@@ -145,15 +143,17 @@ class MyTreeModel(QStandardItemModel):
 
         props.extend(props_uia)
         props.extend(props_win32)
+        
         node_dict = {self.__node_name(element_info): props}
         self.props_dict.update(node_dict)
+        
         element_dict = {self.__node_name(element_info): element}
         self.element_dict.update(element_dict)
 
 
 class MyTableModel(QAbstractTableModel):
     def __init__(self, datain, parent=None, *args):
-        QAbstractTableModel.__init__(self, parent, *args)
+        super().__init__(parent, *args)
         self.arraydata = datain
         self.header_labels = ['Property', 'Value']
 
@@ -177,17 +177,28 @@ class MyTableModel(QAbstractTableModel):
 
 
 def get_rectangle(element: Desktop)-> Tuple[int]:
-    rectangle = element.rectangle()    
-    return rectangle.left, rectangle.top, rectangle.right, rectangle.bottom
+    with contextlib.suppress(Exception):
+        rectangle = element.rectangle()    
+        return rectangle.left, rectangle.top, rectangle.right, rectangle.bottom
 
 
 def center_locate_element(element)-> Tuple:
     box = get_rectangle(element)
-    x1, y1, x2, y2 = box
-    center = int(x1 + abs(x1-x2)/2), int(y1 + abs(y1-y2)/2)
-    return center
+    if box is not None:
+        x1, y1, x2, y2 = box
+        center = int(x1 + x2) / 2, int(y1 + y2) / 2
+        return center
+
+
+def main():
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+    w = MyWindow()
+    w.show()
+    app.exec_()    
 
 
 if __name__ == "__main__":
     main()
-    
+    sys.exit()
