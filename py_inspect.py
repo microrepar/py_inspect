@@ -125,7 +125,7 @@ class MyTreeModel(QStandardItemModel):
                     ['process_id', str(element_info.process_id)],
                     ['rectangle', str(element_info.rectangle)],
                     ['rich_text', str(element_info.rich_text)],
-                    ['visible', str(element_info.visible)]
+                    ['visible', str(element_info.visible)]                    
                 ] 
 
         props_win32 = [
@@ -136,8 +136,8 @@ class MyTreeModel(QStandardItemModel):
                         ['control_type', str(element_info.control_type)],
                         ['element', str(element_info.element)],
                         ['framework_id', str(element_info.framework_id)],
-                        ['runtime_id', str(element_info.runtime_id)],
-                        ['automation_id', str(element_info.automation_id)],
+                        ['runtime_id', str(element_info.runtime_id)], 
+                        ['automation_id', str(element_info.automation_id)],                       
                         [''.center(15, '*'), 'METHODS'.center(50, '*')]
                         
                     ] + [['', e] for e in dir(element) if not e.startswith('_') and not e[0].isupper()] if (self.backend == 'uia') else []
@@ -187,7 +187,7 @@ def center_locate_element(element)-> Tuple:
     box = get_rectangle(element)
     if box is not None:
         x1, y1, x2, y2 = box
-        center = int(x1 + x2) / 2, int(y1 + y2) / 2
+        center = int(x1 + x2) // 2, int(y1 + y2) // 2
         return center
 
 
