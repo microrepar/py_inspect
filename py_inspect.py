@@ -125,7 +125,7 @@ class MyTreeModel(QStandardItemModel):
                     ['process_id', str(element_info.process_id)],
                     ['rectangle', str(element_info.rectangle)],
                     ['rich_text', str(element_info.rich_text)],
-                    ['visible', str(element_info.visible)],
+                    ['visible', str(element_info.visible)]
                 ] 
 
         props_win32 = [
@@ -137,6 +137,7 @@ class MyTreeModel(QStandardItemModel):
                         ['element', str(element_info.element)],
                         ['framework_id', str(element_info.framework_id)],
                         ['runtime_id', str(element_info.runtime_id)],
+                        ['automation_id', str(element_info.automation_id)],
                         [''.center(15, '*'), 'METHODS'.center(50, '*')]
                         
                     ] + [['', e] for e in dir(element) if not e.startswith('_') and not e[0].isupper()] if (self.backend == 'uia') else []
